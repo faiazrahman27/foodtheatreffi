@@ -160,7 +160,7 @@ export default async function JournalArticlePage({
         <div className="rounded-[2rem] bg-white px-8 py-10 shadow-[0_18px_50px_rgba(0,0,0,0.05)] md:px-12 md:py-14">
           <div className="prose prose-lg max-w-none prose-headings:font-semibold prose-p:text-black/75 prose-p:leading-8">
             {post.content && post.content.length > 0 ? (
-              <PortableText value={post.content} />
+              <PortableText value={post.content as any} />
             ) : (
               <p>No article content added yet.</p>
             )}
