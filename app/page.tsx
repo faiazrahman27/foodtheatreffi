@@ -34,7 +34,7 @@ type Experience = {
   shortDescription?: string;
   city?: string;
   country?: string;
-  format?: string;
+  format?: { title: string } | null;
   coverImage?: unknown;
 };
 
