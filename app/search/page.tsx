@@ -79,7 +79,7 @@ const experiencesSearchQuery = groq`
   *[
     _type == "experience" &&
     (
-      !defined($query) || $query == "" ||
+      !defined($searchQuery) || $searchQuery == "" ||
       title match $match ||
       shortDescription match $match ||
       cityRef->name match $match ||
@@ -120,14 +120,14 @@ const charactersSearchQuery = groq`
   *[
     _type == "foodCharacter" &&
     (
-      !defined($query) || $query == "" ||
+      !defined($searchQuery) || $searchQuery == "" ||
       name match $match ||
       bio match $match ||
       cityRef->name match $match ||
       location match $match ||
       cityRef->country match $match ||
       country match $match ||
-      $query in categories[]->title
+      $searchQuery in categories[]->title
     ) &&
     (
       !defined($city)
@@ -163,7 +163,7 @@ const chaptersSearchQuery = groq`
   *[
     _type == "chapter" &&
     (
-      !defined($query) || $query == "" ||
+      !defined($searchQuery) || $searchQuery == "" ||
       cityRef->name match $match ||
       city match $match ||
       cityRef->country match $match ||
@@ -200,7 +200,7 @@ const journalSearchQuery = groq`
   *[
     _type == "journalPost" &&
     (
-      !defined($query) || $query == "" ||
+      !defined($searchQuery) || $searchQuery == "" ||
       title match $match ||
       category match $match ||
       excerpt match $match
@@ -423,7 +423,7 @@ function SearchForm({
         <div className="flex items-end">
           <button
             type="submit"
-            className="w-full rounded-full bg-black px-6 py-3 text-white transition hover:bg-black/85 xl:w-auto"
+            className="w-full rounded-xl bg-black px-5 py-3 text-white transition hover:bg-black/85"
           >
             Search
           </button>
@@ -443,12 +443,12 @@ function SectionHeader({
   count: number;
 }) {
   return (
-    <div className="mb-8 flex items-end justify-between gap-6">
+    <div className="mb-6 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
       <div>
         <p className="text-sm uppercase tracking-[0.28em] text-black/45">
           {eyebrow}
         </p>
-        <h3 className="mt-3 text-2xl font-semibold">{title}</h3>
+        <h3 className="mt-2 text-2xl font-semibold md:text-3xl">{title}</h3>
       </div>
 
       <p className="text-sm text-black/55">
@@ -470,12 +470,14 @@ export default async function SearchPage({
   }>;
 }) {
   const resolvedSearchParams = searchParams ? await searchParams : {};
+
   const query = (resolvedSearchParams?.q || "").trim();
   const selectedType = (resolvedSearchParams?.type || "all").trim();
   const selectedCity = (resolvedSearchParams?.city || "").trim();
   const selectedCategory = (resolvedSearchParams?.category || "").trim();
   const selectedFormat = (resolvedSearchParams?.format || "").trim();
 
+  const searchQuery = query;
   const match = query ? `*${query}*` : null;
   const cityPattern = selectedCity ? `*${selectedCity}*` : null;
 
@@ -529,56 +531,31 @@ export default async function SearchPage({
 
   const shouldShowExperiences =
     selectedType === "experiences" ||
-    (
-      selectedType === "all" &&
-      (
-        !!selectedFormat ||
+    (selectedType === "all" &&
+      (!!selectedFormat ||
         (!selectedCategory && !selectedFormat) ||
-        categoryMatchesExperiences
-      )
-    );
+        categoryMatchesExperiences));
 
   const shouldShowCharacters =
     selectedType === "characters" ||
-    (
-      selectedType === "all" &&
+    (selectedType === "all" &&
       !selectedFormat &&
-      (
-        !selectedCategory ||
-        categoryMatchesCharacters
-      ) &&
-      (
-        !hasCategoryTarget || categoryMatchesCharacters
-      )
-    );
+      (!selectedCategory || categoryMatchesCharacters) &&
+      (!hasCategoryTarget || categoryMatchesCharacters));
 
   const shouldShowChapters =
     selectedType === "chapters" ||
-    (
-      selectedType === "all" &&
+    (selectedType === "all" &&
       !selectedFormat &&
-      (
-        !selectedCategory ||
-        categoryMatchesChapters
-      ) &&
-      (
-        !hasCategoryTarget || categoryMatchesChapters
-      )
-    );
+      (!selectedCategory || categoryMatchesChapters) &&
+      (!hasCategoryTarget || categoryMatchesChapters));
 
   const shouldShowJournal =
     selectedType === "journal" ||
-    (
-      selectedType === "all" &&
+    (selectedType === "all" &&
       !selectedFormat &&
-      (
-        !selectedCategory ||
-        categoryMatchesJournal
-      ) &&
-      (
-        !hasCategoryTarget || categoryMatchesJournal
-      )
-    );
+      (!selectedCategory || categoryMatchesJournal) &&
+      (!hasCategoryTarget || categoryMatchesJournal));
 
   const [experiences, characters, chapters, journalPosts]: [
     ExperienceResult[],
@@ -588,7 +565,7 @@ export default async function SearchPage({
   ] = await Promise.all([
     shouldShowExperiences
       ? sanityClient.fetch(experiencesSearchQuery, {
-          query,
+          searchQuery,
           match,
           city: selectedCity || null,
           category: selectedCategory || null,
@@ -597,7 +574,7 @@ export default async function SearchPage({
       : Promise.resolve([]),
     shouldShowCharacters
       ? sanityClient.fetch(charactersSearchQuery, {
-          query,
+          searchQuery,
           match,
           city: selectedCity || null,
           cityPattern,
@@ -606,7 +583,7 @@ export default async function SearchPage({
       : Promise.resolve([]),
     shouldShowChapters
       ? sanityClient.fetch(chaptersSearchQuery, {
-          query,
+          searchQuery,
           match,
           city: selectedCity || null,
           category: selectedCategory || null,
@@ -614,7 +591,7 @@ export default async function SearchPage({
       : Promise.resolve([]),
     shouldShowJournal
       ? sanityClient.fetch(journalSearchQuery, {
-          query,
+          searchQuery,
           match,
           category: selectedCategory || null,
         })
@@ -695,7 +672,8 @@ export default async function SearchPage({
             <h2 className="text-2xl font-semibold">No results found</h2>
             <p className="mt-4 max-w-2xl leading-7 text-black/65">
               Nothing matched your current search. Try a broader keyword,
-              another city, another category, another experience format, or switch the content type.
+              another city, another category, another experience format, or
+              switch the content type.
             </p>
 
             <div className="mt-6 flex flex-wrap gap-3">
@@ -727,7 +705,9 @@ export default async function SearchPage({
                   {query ? <>Keyword: “{query}”</> : <>Browsing by filters</>}
                   {selectedCity ? <> · City: {selectedCity}</> : null}
                   {selectedCategory ? <> · Category: {selectedCategory}</> : null}
-                  {selectedFormat ? <> · Experience Format: {selectedFormat}</> : null}
+                  {selectedFormat ? (
+                    <> · Experience Format: {selectedFormat}</>
+                  ) : null}
                   {selectedType !== "all" ? <> · Type: {selectedType}</> : null}
                 </p>
               </div>
