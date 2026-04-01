@@ -34,7 +34,9 @@ type Experience = {
   shortDescription?: string;
   city?: string;
   country?: string;
-  format?: { title: string } | null;
+  format?: {
+    title: string;
+  } | null;
   coverImage?: unknown;
 };
 
@@ -89,7 +91,9 @@ const featuredExperiencesQuery = groq`
     shortDescription,
     city,
     country,
-    format,
+    format->{
+      title
+    },
     coverImage
   }
 `;
@@ -308,9 +312,9 @@ export default async function Home() {
                   <h3 className="mt-3 text-2xl font-semibold">
                     {experience.title}
                   </h3>
-                  {experience.format ? (
+                  {experience.format?.title ? (
                     <p className="mt-2 text-sm text-black/55">
-                      {experience.format}
+                      {experience.format.title}
                     </p>
                   ) : null}
                   {experience.shortDescription ? (
@@ -615,5 +619,3 @@ export default async function Home() {
     </main>
   );
 }
-
-
