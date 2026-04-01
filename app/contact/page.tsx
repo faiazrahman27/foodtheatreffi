@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { ContactForm } from "@/components/contact-form";
 import { Footer } from "@/components/footer";
 import { Navbar } from "@/components/navbar";
@@ -25,7 +26,9 @@ export default function ContactPage() {
       </section>
 
       <section className="mx-auto max-w-5xl px-6 pb-16 md:pb-24">
-        <ContactForm />
+        <Suspense fallback={<div>Loading form...</div>}>
+          <ContactForm />
+        </Suspense>
       </section>
 
       <Footer />
