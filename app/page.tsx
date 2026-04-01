@@ -310,7 +310,7 @@ export default async function Home() {
                   </h3>
                   {experience.format ? (
                     <p className="mt-2 text-sm text-black/55">
-                      {experience.format?.title}
+                      {experience.format}
                     </p>
                   ) : null}
                   {experience.shortDescription ? (
@@ -615,3 +615,4 @@ export default async function Home() {
     </main>
   );
 }
+
