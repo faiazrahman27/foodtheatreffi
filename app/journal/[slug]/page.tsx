@@ -7,18 +7,17 @@ import { Footer } from "@/components/footer";
 import { Navbar } from "@/components/navbar";
 import { sanityClient } from "@/lib/sanity.client";
 import { urlFor } from "@/lib/sanity.image";
+import type { PortableTextBlock } from "@portabletext/types";
 
 type JournalPostDetail = {
   _id: string;
   title: string;
-  slug?: {
-    current: string;
-  };
+  slug?: { current: string };
   category?: string;
   excerpt?: string;
   coverImage?: unknown;
   publishedAt?: string;
-  content?: unknown[];
+  content?: PortableTextBlock[];
 };
 
 type RelatedPost = {
