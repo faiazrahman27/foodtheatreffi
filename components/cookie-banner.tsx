@@ -1,26 +1,51 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Image from "next/image";
+import { useSyncExternalStore } from "react";
+
+const COOKIE_EVENT = "food-theatre-cookie-consent";
+
+function subscribe(onStoreChange: () => void) {
+  if (typeof window === "undefined") {
+    return () => {};
+  }
+
+  const handleChange = () => {
+    onStoreChange();
+  };
+
+  window.addEventListener("storage", handleChange);
+  window.addEventListener(COOKIE_EVENT, handleChange);
+
+  return () => {
+    window.removeEventListener("storage", handleChange);
+    window.removeEventListener(COOKIE_EVENT, handleChange);
+  };
+}
+
+function getConsentSnapshot() {
+  if (typeof window === "undefined") {
+    return "accepted";
+  }
+
+  return window.sessionStorage.getItem("cookie-consent");
+}
 
 export function CookieBanner() {
-  const [visible, setVisible] = useState(false);
+  const consent = useSyncExternalStore(subscribe, getConsentSnapshot, () => "accepted");
+  const visible = consent === null;
 
-  useEffect(() => {
-    const accepted = sessionStorage.getItem("cookie-consent");
-    if (!accepted) {
-      setVisible(true);
-    }
-  }, []);
+  function persistConsent(value: "accepted" | "rejected") {
+    window.sessionStorage.setItem("cookie-consent", value);
+    window.dispatchEvent(new Event(COOKIE_EVENT));
+  }
 
   function handleAccept() {
-    sessionStorage.setItem("cookie-consent", "accepted");
-    setVisible(false);
+    persistConsent("accepted");
   }
 
   function handleReject() {
-    sessionStorage.setItem("cookie-consent", "rejected");
-    setVisible(false);
+    persistConsent("rejected");
   }
 
   if (!visible) return null;
@@ -28,8 +53,6 @@ export function CookieBanner() {
   return (
     <div className="fixed bottom-6 left-1/2 z-50 w-[92%] max-w-2xl -translate-x-1/2 animate-[slideUp_0.4s_ease]">
       <div className="rounded-[2rem] border border-black/10 bg-white p-6 shadow-[0_25px_70px_rgba(0,0,0,0.15)] backdrop-blur-xl">
-        
-        {/* Logos */}
         <div className="flex items-center gap-4">
           <Image
             src="/logoft.png"
@@ -50,18 +73,18 @@ export function CookieBanner() {
           />
         </div>
 
-        {/* Text */}
         <div className="mt-5">
           <p className="text-sm uppercase tracking-[0.28em] text-black/45">
             Experimental Product
           </p>
 
           <p className="mt-3 text-sm leading-6 text-black/70">
-            This is an experimental product of Future Food Institute. By continuing, you accept the use of cookies and acknowledge that all rights are reserved.
+            This is an experimental product of Future Food Institute. By
+            continuing, you accept the use of cookies and acknowledge that all
+            rights are reserved.
           </p>
         </div>
 
-        {/* Buttons */}
         <div className="mt-6 flex flex-wrap gap-3">
           <button
             onClick={handleAccept}
@@ -79,7 +102,6 @@ export function CookieBanner() {
         </div>
       </div>
 
-      {/* Animation */}
       <style jsx>{`
         @keyframes slideUp {
           from {

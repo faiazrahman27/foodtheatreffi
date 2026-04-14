@@ -1,3 +1,5 @@
+import type { CSSProperties } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import groq from "groq";
 import { Footer } from "@/components/footer";
@@ -6,7 +8,6 @@ import { Navbar } from "@/components/navbar";
 import { Button } from "@/components/ui/button";
 import { sanityClient } from "@/lib/sanity.client";
 import { urlFor } from "@/lib/sanity.image";
-import Image from "next/image";
 
 type FoodCharacter = {
   _id: string;
@@ -63,6 +64,11 @@ type JournalPost = {
   category?: string;
   excerpt?: string;
   coverImage?: unknown;
+};
+
+type BrandTone = {
+  color: string;
+  foreground: string;
 };
 
 const homeCharactersQuery = groq`
@@ -127,6 +133,350 @@ const featuredJournalQuery = groq`
   }
 `;
 
+const brandTones: BrandTone[] = [
+  { color: "#EFD11E", foreground: "#111111" },
+  { color: "#0072AE", foreground: "#FFFFFF" },
+  { color: "#37AF87", foreground: "#FFFFFF" },
+  { color: "#EE542E", foreground: "#FFFFFF" },
+  { color: "#F3B7BF", foreground: "#111111" },
+  { color: "#7A73B5", foreground: "#FFFFFF" },
+];
+
+const manifestoCards = [
+  {
+    title: "Vision",
+    copy: "Celebrate people and stories around food to create new experiences.",
+    tone: brandTones[0],
+  },
+  {
+    title: "Promise",
+    copy: "An inclusive identity that can host new brands, cities, and collaborators without losing itself.",
+    tone: brandTones[2],
+  },
+  {
+    title: "Typography",
+    copy: "Righteous headlines bring the theatrical voice. Poppins keeps the reading experience clean and modern.",
+    tone: brandTones[3],
+  },
+  {
+    title: "Imagery",
+    copy: "People and food remain central, often framed with strong color fields, circles, and soft geometric cutouts.",
+    tone: brandTones[5],
+  },
+];
+
+function withAlpha(hex: string, alpha: number) {
+  const sanitized = hex.replace("#", "");
+  const normalized =
+    sanitized.length === 3
+      ? sanitized
+          .split("")
+          .map((value) => `${value}${value}`)
+          .join("")
+      : sanitized;
+
+  const red = Number.parseInt(normalized.slice(0, 2), 16);
+  const green = Number.parseInt(normalized.slice(2, 4), 16);
+  const blue = Number.parseInt(normalized.slice(4, 6), 16);
+
+  return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
+}
+
+function toneStyle(tone: BrandTone): CSSProperties {
+  return {
+    "--ft-chip": tone.color,
+    background: `linear-gradient(180deg, ${withAlpha(tone.color, 0.22)} 0%, rgba(255,255,255,0.92) 100%)`,
+    boxShadow: `0 24px 56px ${withAlpha(tone.color, 0.18)}`,
+  } as CSSProperties;
+}
+
+function SectionHeader({
+  eyebrow,
+  title,
+  description,
+  accent,
+}: {
+  eyebrow: string;
+  title: string;
+  description: string;
+  accent: BrandTone;
+}) {
+  return (
+    <div className="grid gap-6 lg:grid-cols-[0.92fr_1.08fr] lg:items-end">
+      <div>
+        <p className="ft-eyebrow">{eyebrow}</p>
+        <h2 className="mt-4 text-4xl leading-[0.95] md:text-6xl">{title}</h2>
+      </div>
+
+      <div className="ft-surface relative overflow-hidden p-6 md:p-8">
+        <div
+          className="absolute -right-10 top-0 h-28 w-28 rounded-full md:h-32 md:w-32"
+          style={{ background: accent.color }}
+        />
+        <div
+          className="absolute bottom-0 right-16 h-24 w-24 rounded-t-full"
+          style={{ background: withAlpha(accent.color, 0.82) }}
+        />
+        <p className="relative max-w-2xl text-base leading-8 text-black/68 md:text-lg">
+          {description}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function ExperienceStageCard({
+  experience,
+  tone,
+}: {
+  experience: Experience;
+  tone: BrandTone;
+}) {
+  const imageUrl = experience.coverImage
+    ? urlFor(experience.coverImage).width(1400).height(1000).url()
+    : null;
+
+  const href = experience.slug?.current
+    ? `/experiences/${experience.slug.current}`
+    : "/experiences";
+
+  return (
+    <Link href={href} className="ft-card group block overflow-hidden">
+      <div className="relative h-72 overflow-hidden bg-black/6">
+        {imageUrl ? (
+          <Image
+            src={imageUrl}
+            alt={experience.title}
+            fill
+            sizes="(max-width: 768px) 100vw, 33vw"
+            className="object-cover transition duration-500 group-hover:scale-[1.04]"
+          />
+        ) : null}
+        <div
+          className="absolute left-5 top-5 rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em]"
+          style={{
+            background: withAlpha(tone.color, 0.94),
+            color: tone.foreground,
+          }}
+        >
+          {experience.format?.title || "Featured format"}
+        </div>
+      </div>
+
+      <div className="relative p-6">
+        <div
+          className="absolute -top-8 right-6 h-16 w-16 rounded-full border-[12px]"
+          style={{
+            borderColor: withAlpha(tone.color, 0.78),
+            background: "rgba(255,255,255,0.85)",
+          }}
+        />
+        <p className="ft-eyebrow">
+          {[experience.city, experience.country].filter(Boolean).join(" / ") ||
+            "Experiences"}
+        </p>
+        <h3 className="mt-3 text-3xl leading-none">{experience.title}</h3>
+        {experience.shortDescription ? (
+          <p className="mt-4 text-sm leading-7 text-black/68">
+            {experience.shortDescription}
+          </p>
+        ) : null}
+        <span className="ft-link mt-6">Explore experience</span>
+      </div>
+    </Link>
+  );
+}
+
+function CharacterStageCard({
+  character,
+  tone,
+}: {
+  character: FoodCharacter;
+  tone: BrandTone;
+}) {
+  const imageUrl = character.image
+    ? urlFor(character.image).width(1200).height(1400).url()
+    : null;
+
+  const href = character.slug?.current
+    ? `/characters/${character.slug.current}`
+    : "/characters";
+
+  return (
+    <Link href={href} className="ft-card group block p-6">
+      <div className="relative overflow-hidden rounded-[1.7rem] p-4">
+        <div
+          className="absolute inset-x-0 bottom-0 top-10 rounded-full"
+          style={{ background: tone.color }}
+        />
+        <div className="absolute left-6 top-4 h-7 w-7 rounded-full bg-white/92" />
+        <div className="absolute bottom-5 right-4 h-12 w-12 rounded-full border-[11px] border-white/80" />
+
+        <div className="relative mx-auto aspect-square max-w-[17rem] overflow-hidden">
+          {imageUrl ? (
+            <Image
+              src={imageUrl}
+              alt={character.name}
+              fill
+              sizes="(max-width: 768px) 100vw, 28vw"
+              className="object-contain object-bottom grayscale transition duration-500 group-hover:scale-[1.03]"
+            />
+          ) : null}
+        </div>
+      </div>
+
+      <div className="mt-6">
+        <p className="ft-eyebrow">Food Character</p>
+        <h3 className="mt-3 text-3xl leading-none">{character.name}</h3>
+
+        {character.categories?.length ? (
+          <div className="mt-4 flex flex-wrap gap-2">
+            {character.categories.map((tag, index) =>
+              tag?.title ? (
+                <span
+                  key={tag._id || `${character._id}-tag-${index}`}
+                  className="ft-stage-chip text-[0.72rem]"
+                  style={
+                    {
+                      "--ft-chip":
+                        brandTones[(index + 2) % brandTones.length].color,
+                    } as CSSProperties
+                  }
+                >
+                  {tag.title}
+                </span>
+              ) : null
+            )}
+          </div>
+        ) : null}
+
+        {character.bio ? (
+          <p className="mt-4 text-sm leading-7 text-black/68">
+            {character.bio}
+          </p>
+        ) : null}
+
+        <span className="ft-link mt-6">Meet the character</span>
+      </div>
+    </Link>
+  );
+}
+
+function ChapterStageCard({
+  chapter,
+  tone,
+}: {
+  chapter: Chapter;
+  tone: BrandTone;
+}) {
+  const imageUrl = chapter.coverImage
+    ? urlFor(chapter.coverImage).width(1400).height(1100).url()
+    : null;
+
+  const href = chapter.slug?.current
+    ? `/chapters/${chapter.slug.current}`
+    : "/chapters";
+
+  return (
+    <Link href={href} className="ft-card group block overflow-hidden">
+      <div
+        className="relative p-5"
+        style={{
+          background: `linear-gradient(135deg, ${withAlpha(tone.color, 0.26)} 0%, rgba(255,255,255,0.4) 100%)`,
+        }}
+      >
+        <div className="relative h-64 overflow-hidden rounded-[1.6rem]">
+          {imageUrl ? (
+            <Image
+              src={imageUrl}
+              alt={chapter.city}
+              fill
+              sizes="(max-width: 768px) 100vw, 33vw"
+              className="object-cover transition duration-500 group-hover:scale-[1.04]"
+            />
+          ) : null}
+        </div>
+
+        <div
+          className="absolute right-10 top-10 flex h-14 w-14 items-center justify-center rounded-full text-xs font-semibold uppercase tracking-[0.18em]"
+          style={{
+            background: tone.color,
+            color: tone.foreground,
+          }}
+        >
+          FT
+        </div>
+      </div>
+
+      <div className="p-6">
+        <p className="ft-eyebrow">{chapter.country || "Chapter"}</p>
+        <h3 className="mt-3 text-3xl leading-none">{chapter.city}</h3>
+        {chapter.chapterStyle?.title ? (
+          <p className="mt-3 text-sm font-semibold text-black/58">
+            {chapter.chapterStyle.title}
+          </p>
+        ) : null}
+        {chapter.shortDescription ? (
+          <p className="mt-4 text-sm leading-7 text-black/68">
+            {chapter.shortDescription}
+          </p>
+        ) : null}
+        <span className="ft-link mt-6">Explore chapter</span>
+      </div>
+    </Link>
+  );
+}
+
+function JournalStageCard({
+  post,
+  tone,
+}: {
+  post: JournalPost;
+  tone: BrandTone;
+}) {
+  const imageUrl = post.coverImage
+    ? urlFor(post.coverImage).width(1400).height(1000).url()
+    : null;
+
+  const href = post.slug?.current ? `/journal/${post.slug.current}` : "/journal";
+
+  return (
+    <Link href={href} className="ft-card group block overflow-hidden">
+      <div className="relative h-64 overflow-hidden">
+        {imageUrl ? (
+          <Image
+            src={imageUrl}
+            alt={post.title}
+            fill
+            sizes="(max-width: 768px) 100vw, 33vw"
+            className="object-cover transition duration-500 group-hover:scale-[1.05]"
+          />
+        ) : null}
+        <div
+          className="absolute inset-0"
+          style={{
+            background: `linear-gradient(180deg, transparent 0%, ${withAlpha(
+              tone.color,
+              0.8
+            )} 100%)`,
+          }}
+        />
+      </div>
+
+      <div className="p-6">
+        <p className="ft-eyebrow">{post.category || "Journal"}</p>
+        <h3 className="mt-3 text-3xl leading-none">{post.title}</h3>
+        {post.excerpt ? (
+          <p className="mt-4 text-sm leading-7 text-black/68">
+            {post.excerpt}
+          </p>
+        ) : null}
+        <span className="ft-link mt-6">Read the article</span>
+      </div>
+    </Link>
+  );
+}
+
 export default async function Home() {
   const [characters, experiences, chapters, journalPosts]: [
     FoodCharacter[],
@@ -141,475 +491,334 @@ export default async function Home() {
   ]);
 
   return (
-    <main className="min-h-screen text-black">
+    <main className="ft-shell min-h-screen text-black">
       <Navbar />
 
-      <section className="mx-auto max-w-7xl px-6 pb-10 pt-10 md:pb-16 md:pt-16">
-        <div className="grid items-center gap-10 md:grid-cols-[1.05fr_0.95fr]">
-          <div className="max-w-2xl">
-            <p className="text-sm uppercase tracking-[0.32em] text-black/45">
-              Food Theatre
-            </p>
+      <section className="mx-auto max-w-7xl px-6 pb-12 pt-10 md:pb-16 md:pt-16">
+        <div className="grid gap-8 xl:grid-cols-[1.04fr_0.96fr] xl:items-start">
+          <div>
+            <div className="flex flex-wrap gap-2">
+              <span
+                className="ft-stage-chip"
+                style={{ "--ft-chip": "var(--ft-citrine)" } as CSSProperties}
+              >
+                Brand book aligned
+              </span>
+              <span
+                className="ft-stage-chip"
+                style={{ "--ft-chip": "var(--ft-denim)" } as CSSProperties}
+              >
+                Righteous + Poppins
+              </span>
+              <span
+                className="ft-stage-chip"
+                style={{ "--ft-chip": "var(--ft-pomodori)" } as CSSProperties}
+              >
+                Color-led stage system
+              </span>
+            </div>
 
-            <h1 className="mt-5 text-5xl font-semibold leading-[1.02] md:text-7xl">
-              Food as atmosphere, ritual, and experience.
+            <h1 className="mt-6 max-w-4xl text-[3.6rem] leading-[0.9] md:text-[6.65rem]">
+              A colorful stage for food, people, and place.
             </h1>
 
-            <p className="mt-6 max-w-xl text-lg leading-8 text-black/68">
-              A curated platform where immersive dining, distinctive Food
-              Characters, and city-based chapters come together into one living
-              cultural ecosystem.
+            <p className="mt-6 max-w-2xl text-lg leading-8 text-black/72">
+              The redesign translates the PDF directly into product language:
+              quiet off-white space, strong circular geometry, saturated six-color
+              accents, bold theatrical headlines, and portraits that feel like
+              protagonists instead of profile tiles.
             </p>
 
-            <div className="mt-8 flex flex-wrap gap-4">
-              <Link href="/experiences">
-                <Button className="rounded-full bg-black px-6 py-3 text-white hover:bg-black/85">
-                  Explore Experiences
-                </Button>
-              </Link>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Button asChild size="lg">
+                <Link href="/experiences">Explore Experiences</Link>
+              </Button>
 
-              <Link href="/characters">
-                <Button
-                  variant="outline"
-                  className="rounded-full border-black bg-transparent px-6 py-3 text-black hover:bg-black/5"
-                >
-                  Meet Characters
-                </Button>
-              </Link>
+              <Button asChild size="lg" variant="outline" className="bg-white/80">
+                <Link href="/characters">Meet Food Characters</Link>
+              </Button>
             </div>
 
-            <div className="mt-8 max-w-xl">
-              <form
-                action="/search"
-                method="GET"
-                className="rounded-[1.75rem] bg-white p-4 shadow-[0_18px_50px_rgba(0,0,0,0.05)]"
-              >
-                <p className="text-xs uppercase tracking-[0.24em] text-black/40">
-                  Search the Platform
-                </p>
+            <form
+              action="/search"
+              method="GET"
+              className="ft-surface-strong mt-10 p-4 md:p-5"
+            >
+              <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-center">
+                <div>
+                  <p className="ft-eyebrow">Search the stage</p>
+                  <div className="mt-3 flex flex-col gap-3 sm:flex-row">
+                    <input
+                      type="text"
+                      name="q"
+                      placeholder="Search experiences, characters, chapters, journal..."
+                      className="ft-input"
+                    />
 
-                <div className="mt-3 grid gap-3 md:grid-cols-[1fr_auto]">
-                  <input
-                    type="text"
-                    name="q"
-                    placeholder="Search experiences, characters, chapters, journal..."
-                    className="w-full rounded-full border border-black/10 px-5 py-3 outline-none transition focus:border-black/20"
-                  />
-
-                  <button
-                    type="submit"
-                    className="rounded-full bg-black px-6 py-3 text-white transition hover:bg-black/85"
-                  >
-                    Search
-                  </button>
+                    <Button type="submit" size="lg" className="shrink-0">
+                      Search
+                    </Button>
+                  </div>
                 </div>
-              </form>
-            </div>
 
-            <div className="mt-10 grid max-w-xl grid-cols-3 gap-4 border-t border-black/10 pt-6">
-              <div>
-                <p className="text-xs uppercase tracking-[0.22em] text-black/40">
-                  Experiences
-                </p>
-                <p className="mt-2 text-xl font-semibold">Curated</p>
+                <div className="flex flex-wrap gap-2 lg:justify-end">
+                  <span
+                    className="ft-stage-chip"
+                    style={{ "--ft-chip": "var(--ft-citrine)" } as CSSProperties}
+                  >
+                    Experiences
+                  </span>
+                  <span
+                    className="ft-stage-chip"
+                    style={{ "--ft-chip": "var(--ft-denim)" } as CSSProperties}
+                  >
+                    Chapters
+                  </span>
+                  <span
+                    className="ft-stage-chip"
+                    style={{ "--ft-chip": "var(--ft-menta)" } as CSSProperties}
+                  >
+                    Journal
+                  </span>
+                </div>
               </div>
-              <div>
-                <p className="text-xs uppercase tracking-[0.22em] text-black/40">
-                  Characters
-                </p>
-                <p className="mt-2 text-xl font-semibold">Distinctive</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-[0.22em] text-black/40">
-                  Chapters
-                </p>
-                <p className="mt-2 text-xl font-semibold">Local</p>
-              </div>
+            </form>
+
+            <div className="mt-10 grid gap-4 sm:grid-cols-3">
+              {[
+                {
+                  label: "Experiences",
+                  title: "Immersive formats",
+                  tone: brandTones[0],
+                },
+                {
+                  label: "Characters",
+                  title: "Hosts and creators",
+                  tone: brandTones[3],
+                },
+                {
+                  label: "Chapters",
+                  title: "City-based stages",
+                  tone: brandTones[1],
+                },
+              ].map((stat) => (
+                <div
+                  key={stat.label}
+                  className="ft-card p-5"
+                  style={toneStyle(stat.tone)}
+                >
+                  <p className="ft-eyebrow">{stat.label}</p>
+                  <p className="mt-3 text-2xl leading-none">{stat.title}</p>
+                </div>
+              ))}
             </div>
           </div>
 
-          <div className="grid gap-5">
+          <div className="grid gap-6">
             <HeroCarousel />
 
-            <div className="mt-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Link
+                href="/about"
+                className="ft-card relative overflow-hidden p-6"
+                style={toneStyle(brandTones[2])}
+              >
+                <div className="absolute -right-6 top-6 h-20 w-20 rounded-full bg-white/65" />
+                <p className="ft-eyebrow">Vision / Promise</p>
+                <h2 className="mt-4 text-3xl leading-none">
+                  Celebrate people and stories around food.
+                </h2>
+                <p className="mt-4 text-sm leading-7 text-black/68">
+                  The brand book frames Food Theatre as a flexible system that
+                  can welcome new communities without losing its voice.
+                </p>
+                <span className="ft-link mt-6">Read the story</span>
+              </Link>
+
               <Link
                 href="/contact?type=general-contact"
-                className="group block rounded-[2rem] bg-white p-8 shadow-[0_18px_50px_rgba(0,0,0,0.06)] transition duration-300 hover:-translate-y-1"
+                className="ft-card relative overflow-hidden p-6"
+                style={toneStyle(brandTones[4])}
               >
-                <p className="text-xs uppercase tracking-[0.24em] text-black/40">
-                  General Inquiry
+                <div className="absolute bottom-0 right-0 h-24 w-24 rounded-t-full bg-white/70" />
+                <p className="ft-eyebrow">General Inquiry</p>
+                <h2 className="mt-4 text-3xl leading-none">
+                  Start a conversation with the team.
+                </h2>
+                <p className="mt-4 text-sm leading-7 text-black/68">
+                  Reach out about collaborations, formats, chapters, or how the
+                  platform can show up in a specific city.
                 </p>
-
-                <h3 className="mt-4 text-2xl font-semibold">
-                  Start a conversation
-                </h3>
-
-                <p className="mt-4 max-w-md text-sm leading-7 text-black/65">
-                  Ask questions, explore ideas, or reach out about anything
-                  related to Food Theatre.
-                </p>
-
-                <p className="mt-6 text-sm font-medium text-black/80 transition group-hover:text-black">
-                  Go to Inquiry →
-                </p>
+                <span className="ft-link mt-6">Open inquiry</span>
               </Link>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-6 py-16 md:py-24">
-        <div className="grid gap-8 md:grid-cols-[0.9fr_1.1fr] md:items-end">
-          <div>
-            <p className="text-sm uppercase tracking-[0.28em] text-black/45">
-              Featured Experiences
-            </p>
+      <section className="mx-auto max-w-7xl px-6 py-4 md:py-8">
+        <div className="ft-surface-strong overflow-hidden p-8 md:p-10">
+          <div className="grid gap-8 lg:grid-cols-[0.74fr_1.26fr]">
+            <div>
+              <p className="ft-eyebrow">Brand Translation</p>
+              <h2 className="mt-4 text-4xl leading-[0.95] md:text-5xl">
+                The homepage now behaves like the brand book, not just the logo.
+              </h2>
+              <p className="mt-5 max-w-lg text-base leading-8 text-black/68">
+                Instead of generic white cards, the experience now uses the
+                exact brand palette, circular and cut-out geometry, bolder
+                editorial hierarchy, and a more stage-like composition.
+              </p>
+            </div>
 
-            <h2 className="mt-4 text-3xl font-semibold md:text-5xl">
-              Curated formats with identity and atmosphere.
-            </h2>
-          </div>
-
-          <p className="max-w-2xl text-base leading-8 text-black/65 md:justify-self-end">
-            Discover dining formats that feel memorable before they are even
-            booked — emotionally resonant, visually rich, and grounded in place.
-          </p>
-        </div>
-
-        <div className="mt-12 grid gap-6 md:grid-cols-3">
-          {experiences.map((experience) => {
-            const imageUrl = experience.coverImage
-              ? urlFor(experience.coverImage).width(1200).height(900).url()
-              : null;
-
-            const href = experience.slug?.current
-              ? `/experiences/${experience.slug.current}`
-              : "/experiences";
-
-            return (
-              <Link
-                key={experience._id}
-                href={href}
-                className="group overflow-hidden rounded-[2rem] bg-white shadow-[0_18px_50px_rgba(0,0,0,0.06)] transition duration-300 hover:-translate-y-1"
-              >
-                <div className="relative h-64 w-full overflow-hidden bg-neutral-100">
-                  {imageUrl ? (
-                    <Image
-                      src={imageUrl}
-                      alt={experience.title}
-                      fill
-                      sizes="(max-width: 768px) 100vw, 33vw"
-                      className="object-cover transition duration-500 group-hover:scale-[1.03]"
-                    />
-                  ) : null}
-                </div>
-                <div className="p-6">
-                  <p className="text-xs uppercase tracking-[0.25em] text-black/45">
-                    {[experience.city, experience.country]
-                      .filter(Boolean)
-                      .join(" · ")}
-                  </p>
-                  <h3 className="mt-3 text-2xl font-semibold">
-                    {experience.title}
-                  </h3>
-                  {experience.format?.title ? (
-                    <p className="mt-2 text-sm text-black/55">
-                      {experience.format.title}
-                    </p>
-                  ) : null}
-                  {experience.shortDescription ? (
-                    <p className="mt-4 leading-7 text-black/65">
-                      {experience.shortDescription}
-                    </p>
-                  ) : null}
-                </div>
-              </Link>
-            );
-          })}
-        </div>
-
-        <div className="mt-10 flex justify-center">
-          <Link
-            href="/experiences"
-            className="text-sm font-medium text-black/75 transition hover:text-black"
-          >
-            View More Experiences →
-          </Link>
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-7xl px-6 py-16 md:py-24">
-        <div className="grid gap-8 md:grid-cols-[0.9fr_1.1fr] md:items-end">
-          <div>
-            <p className="text-sm uppercase tracking-[0.28em] text-black/45">
-              Food Characters
-            </p>
-
-            <h2 className="mt-4 text-3xl font-semibold md:text-5xl">
-              The people who bring the platform to life.
-            </h2>
-          </div>
-
-          <p className="max-w-2xl text-base leading-8 text-black/65 md:justify-self-end">
-            Meet the chefs, hosts, and creative personalities shaping each
-            experience with their own craft, energy, and point of view.
-          </p>
-        </div>
-
-        <div className="mt-12 grid gap-6 md:grid-cols-3">
-          {characters.map((character) => {
-            const imageUrl = character.image
-              ? urlFor(character.image).width(1200).height(1400).url()
-              : null;
-
-            const href = character.slug?.current
-              ? `/characters/${character.slug.current}`
-              : "/characters";
-
-            return (
-              <Link
-                key={character._id}
-                href={href}
-                className="group overflow-hidden rounded-[2rem] bg-white shadow-[0_18px_50px_rgba(0,0,0,0.06)] transition duration-300 hover:-translate-y-1"
-              >
-                <div className="relative h-80 w-full overflow-hidden bg-neutral-100">
-                  {imageUrl ? (
-                    <Image
-                      src={imageUrl}
-                      alt={character.name}
-                      fill
-                      sizes="(max-width: 768px) 100vw, 33vw"
-                      className="object-cover transition duration-500 group-hover:scale-[1.03]"
-                    />
-                  ) : null}
-                </div>
-
-                <div className="p-6">
-                  <p className="text-xs uppercase tracking-[0.25em] text-black/45">
-                    Food Character
-                  </p>
-
-                  <h3 className="mt-3 text-2xl font-semibold">
-                    {character.name}
-                  </h3>
-
-                  {character.categories?.length ? (
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      {character.categories.map((tag, index) =>
-                        tag?.title ? (
-                          <span
-                            key={tag._id || `${character._id}-tag-${index}`}
-                            className="rounded-full bg-black/5 px-3 py-1 text-xs text-black/65"
-                          >
-                            {tag.title}
-                          </span>
-                        ) : null
-                      )}
-                    </div>
-                  ) : null}
-
-                  {character.bio ? (
-                    <p className="mt-4 leading-7 text-black/65">
-                      {character.bio}
-                    </p>
-                  ) : null}
-                </div>
-              </Link>
-            );
-          })}
-        </div>
-
-        <div className="mt-10 flex justify-center">
-          <Link
-            href="/characters"
-            className="text-sm font-medium text-black/75 transition hover:text-black"
-          >
-            View More Characters →
-          </Link>
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-7xl px-6 py-16 md:py-24">
-        <div className="grid gap-8 md:grid-cols-[0.9fr_1.1fr] md:items-end">
-          <div>
-            <p className="text-sm uppercase tracking-[0.28em] text-black/45">
-              Chapters
-            </p>
-
-            <h2 className="mt-4 text-3xl font-semibold md:text-5xl">
-              Cities become stages for Food Theatre.
-            </h2>
-          </div>
-
-          <p className="max-w-2xl text-base leading-8 text-black/65 md:justify-self-end">
-            Discover city-based chapters where local culture, hospitality, and
-            creative communities shape the way Food Theatre comes to life.
-          </p>
-        </div>
-
-        <div className="mt-12 grid gap-6 md:grid-cols-3">
-          {chapters.map((chapter) => {
-            const imageUrl = chapter.coverImage
-              ? urlFor(chapter.coverImage).width(1200).height(900).url()
-              : null;
-
-            const href = chapter.slug?.current
-              ? `/chapters/${chapter.slug.current}`
-              : "/chapters";
-
-            return (
-              <Link
-                key={chapter._id}
-                href={href}
-                className="group overflow-hidden rounded-[2rem] bg-white shadow-[0_18px_50px_rgba(0,0,0,0.06)] transition duration-300 hover:-translate-y-1"
-              >
-                <div className="relative h-72 w-full overflow-hidden bg-neutral-100">
-                  {imageUrl ? (
-                    <Image
-                      src={imageUrl}
-                      alt={chapter.city}
-                      fill
-                      sizes="(max-width: 768px) 100vw, 33vw"
-                      className="object-cover transition duration-500 group-hover:scale-[1.03]"
-                    />
-                  ) : null}
-                </div>
-                <div className="p-6">
-                  <p className="text-xs uppercase tracking-[0.25em] text-black/45">
-                    {chapter.country || "Chapter"}
-                  </p>
-                  <h3 className="mt-3 text-2xl font-semibold">
-                    {chapter.city}
-                  </h3>
-                  {chapter.chapterStyle?.title ? (
-                    <p className="mt-2 text-sm text-black/55">
-                      {chapter.chapterStyle.title}
-                    </p>
-                  ) : null}
-                  {chapter.shortDescription ? (
-                    <p className="mt-4 leading-7 text-black/65">
-                      {chapter.shortDescription}
-                    </p>
-                  ) : null}
-                </div>
-              </Link>
-            );
-          })}
-        </div>
-
-        <div className="mt-10 flex justify-center">
-          <Link
-            href="/chapters"
-            className="text-sm font-medium text-black/75 transition hover:text-black"
-          >
-            View More Chapters →
-          </Link>
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-7xl px-6 py-16 md:py-24">
-        <div className="grid gap-8 md:grid-cols-[0.9fr_1.1fr] md:items-end">
-          <div>
-            <p className="text-sm uppercase tracking-[0.28em] text-black/45">
-              Journal
-            </p>
-
-            <h2 className="mt-4 text-3xl font-semibold md:text-5xl">
-              Editorial perspectives around food, ritual, and hospitality.
-            </h2>
-          </div>
-
-          <p className="max-w-2xl text-base leading-8 text-black/65 md:justify-self-end">
-            Read reflections, ideas, and stories exploring the people, places,
-            and cultural movements shaping a more meaningful food future.
-          </p>
-        </div>
-
-        <div className="mt-12 grid gap-6 md:grid-cols-3">
-          {journalPosts.map((post) => {
-            const imageUrl = post.coverImage
-              ? urlFor(post.coverImage).width(1200).height(900).url()
-              : null;
-
-            const href = post.slug?.current
-              ? `/journal/${post.slug.current}`
-              : "/journal";
-
-            return (
-              <Link
-                key={post._id}
-                href={href}
-                className="group overflow-hidden rounded-[2rem] bg-white shadow-[0_18px_50px_rgba(0,0,0,0.06)] transition duration-300 hover:-translate-y-1"
-              >
-                <div className="relative h-64 w-full overflow-hidden bg-neutral-100">
-                  {imageUrl ? (
-                    <Image
-                      src={imageUrl}
-                      alt={post.title}
-                      fill
-                      sizes="(max-width: 768px) 100vw, 33vw"
-                      className="object-cover transition duration-500 group-hover:scale-[1.03]"
-                    />
-                  ) : null}
-                </div>
-                <div className="p-6">
-                  <p className="text-xs uppercase tracking-[0.25em] text-black/45">
-                    {post.category || "Journal"}
-                  </p>
-                  <h3 className="mt-3 text-2xl font-semibold">{post.title}</h3>
-                  {post.excerpt ? (
-                    <p className="mt-4 leading-7 text-black/65">
-                      {post.excerpt}
-                    </p>
-                  ) : null}
-                </div>
-              </Link>
-            );
-          })}
-        </div>
-
-        <div className="mt-10 flex justify-center">
-          <Link
-            href="/journal"
-            className="text-sm font-medium text-black/75 transition hover:text-black"
-          >
-            View More Journal Articles →
-          </Link>
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-7xl px-6 py-16 md:py-24">
-        <div className="rounded-[2.5rem] bg-black px-8 py-12 text-white md:px-14 md:py-16">
-          <div className="max-w-3xl">
-            <p className="text-sm uppercase tracking-[0.28em] text-white/50">
-              Join the Movement
-            </p>
-
-            <h2 className="mt-4 text-3xl font-semibold md:text-5xl">
-              Build, host, and experience the next stage of food culture.
-            </h2>
-
-            <p className="mt-6 text-lg leading-8 text-white/70">
-              Whether you are a guest, a Food Character, a future Chapter, or a
-              partner brand, Food Theatre is designed to connect people, places,
-              and stories through food.
-            </p>
-
-            <div className="mt-8 flex flex-wrap gap-4">
-              <Link href="/become-a-character">
-                <Button className="rounded-full bg-white px-6 py-3 text-black hover:bg-white/90">
-                  Become a Food Character
-                </Button>
-              </Link>
-
-              <Link href="/open-a-chapter">
-                <Button
-                  variant="outline"
-                  className="rounded-full border-white bg-transparent px-6 py-3 text-white hover:bg-white/10"
+            <div className="grid gap-4 sm:grid-cols-2">
+              {manifestoCards.map((card) => (
+                <div
+                  key={card.title}
+                  className="ft-card relative overflow-hidden p-6"
+                  style={toneStyle(card.tone)}
                 >
-                  Open a Chapter
-                </Button>
-              </Link>
+                  <div
+                    className="absolute -right-8 bottom-0 h-20 w-20 rounded-t-full"
+                    style={{ background: withAlpha(card.tone.color, 0.86) }}
+                  />
+                  <p className="ft-eyebrow">{card.title}</p>
+                  <h3 className="mt-4 text-3xl leading-none">{card.title}</h3>
+                  <p className="mt-4 text-sm leading-7 text-black/68">
+                    {card.copy}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-6 py-16 md:py-24">
+        <SectionHeader
+          eyebrow="Featured Experiences"
+          title="Immersive formats with a stronger sense of atmosphere."
+          description="Featured experiences now sit inside a more theatrical layout with color-coded accents, tighter hierarchy, and imagery that feels staged rather than slotted."
+          accent={brandTones[3]}
+        />
+
+        <div className="mt-10 grid gap-6 lg:grid-cols-3">
+          {experiences.map((experience, index) => (
+            <ExperienceStageCard
+              key={experience._id}
+              experience={experience}
+              tone={brandTones[index % brandTones.length]}
+            />
+          ))}
+        </div>
+
+        <div className="mt-10 flex justify-center">
+          <Link href="/experiences" className="ft-link text-black/80">
+            View more experiences
+          </Link>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-6 py-16 md:py-24">
+        <SectionHeader
+          eyebrow="Food Characters"
+          title="Portraits treated like protagonists, not profile blocks."
+          description="The brand book repeatedly frames people inside circles, cut-outs, and saturated color fields. The character cards now borrow that exact language."
+          accent={brandTones[5]}
+        />
+
+        <div className="mt-10 grid gap-6 lg:grid-cols-3">
+          {characters.map((character, index) => (
+            <CharacterStageCard
+              key={character._id}
+              character={character}
+              tone={brandTones[(index + 1) % brandTones.length]}
+            />
+          ))}
+        </div>
+
+        <div className="mt-10 flex justify-center">
+          <Link href="/characters" className="ft-link text-black/80">
+            View more characters
+          </Link>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-6 py-16 md:py-24">
+        <SectionHeader
+          eyebrow="Chapters"
+          title="Cities feel like stages with their own local color."
+          description="Chapter cards now land between editorial and wayfinding: big image frames, strong color moments, and a more confident sense of place."
+          accent={brandTones[1]}
+        />
+
+        <div className="mt-10 grid gap-6 lg:grid-cols-3">
+          {chapters.map((chapter, index) => (
+            <ChapterStageCard
+              key={chapter._id}
+              chapter={chapter}
+              tone={brandTones[(index + 2) % brandTones.length]}
+            />
+          ))}
+        </div>
+
+        <div className="mt-10 flex justify-center">
+          <Link href="/chapters" className="ft-link text-black/80">
+            View more chapters
+          </Link>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-6 py-16 md:py-24">
+        <SectionHeader
+          eyebrow="Journal"
+          title="Editorial space for rituals, hospitality, and cultural context."
+          description="The journal keeps the same palette-driven system but uses quieter overlays so it still reads like editorial content instead of event promotion."
+          accent={brandTones[4]}
+        />
+
+        <div className="mt-10 grid gap-6 lg:grid-cols-3">
+          {journalPosts.map((post, index) => (
+            <JournalStageCard
+              key={post._id}
+              post={post}
+              tone={brandTones[(index + 4) % brandTones.length]}
+            />
+          ))}
+        </div>
+
+        <div className="mt-10 flex justify-center">
+          <Link href="/journal" className="ft-link text-black/80">
+            View more journal articles
+          </Link>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-6 py-16 md:py-24">
+        <div className="ft-surface-strong relative overflow-hidden p-8 md:p-12">
+          <div className="absolute -right-14 top-0 h-44 w-44 rounded-full bg-[var(--ft-citrine)]" />
+          <div className="absolute bottom-0 right-32 h-56 w-56 rounded-t-full bg-[var(--ft-denim)]" />
+          <div className="absolute -bottom-10 right-6 h-32 w-32 rounded-full border-[24px] border-[var(--ft-blush)] bg-transparent" />
+
+          <div className="relative max-w-3xl">
+            <p className="ft-eyebrow">Join the Stage</p>
+            <h2 className="mt-4 text-5xl leading-[0.92] md:text-6xl">
+              Build, host, and experience the next chapter of food culture.
+            </h2>
+            <p className="mt-6 text-lg leading-8 text-black/72">
+              The new visual system is designed to support guests, chapters,
+              partners, and Food Characters with the same confident identity
+              across every touchpoint.
+            </p>
+
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Button asChild size="lg">
+                <Link href="/become-a-character">Become a Food Character</Link>
+              </Button>
+
+              <Button asChild size="lg" variant="outline" className="bg-white/86">
+                <Link href="/open-a-chapter">Open a Chapter</Link>
+              </Button>
             </div>
           </div>
         </div>

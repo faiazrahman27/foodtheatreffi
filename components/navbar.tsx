@@ -1,113 +1,114 @@
+import type { CSSProperties } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
+const navLinks = [
+  { href: "/experiences", label: "Experiences", chip: "var(--ft-citrine)" },
+  { href: "/characters", label: "Characters", chip: "var(--ft-pomodori)" },
+  { href: "/chapters", label: "Chapters", chip: "var(--ft-denim)" },
+  { href: "/journal", label: "Journal", chip: "var(--ft-viola)" },
+  { href: "/about", label: "About", chip: "var(--ft-blush)" },
+];
+
 export function Navbar() {
   return (
-    <header className="sticky top-0 z-50 border-b border-black/5 bg-[#f5f1ea]/90 backdrop-blur-xl">
-      <div className="mx-auto max-w-7xl px-6 py-4">
-        <div className="flex items-center justify-between gap-6">
-          
-          {/* LOGO */}
-          <Link href="/" className="flex items-center gap-3 shrink-0">
-            <div className="relative h-20 w-20 shrink-0">
-              <Image
-                src="/logoft.png"
-                alt="Food Theatre logo"
-                fill
-                className="object-contain"
-              />
-            </div>
+    <header className="sticky top-0 z-50 border-b border-black/6 bg-[rgba(255,253,248,0.78)] backdrop-blur-2xl">
+      <div className="mx-auto max-w-7xl px-4 py-4 md:px-6">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+          <div className="flex items-center justify-between gap-4">
+            <Link href="/" className="flex min-w-0 items-center gap-3">
+              <div className="relative flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-[1.45rem] border border-black/8 bg-white shadow-[0_14px_34px_rgba(17,17,17,0.08)]">
+                <Image
+                  src="/logoft.png"
+                  alt="Food Theatre logo"
+                  fill
+                  sizes="56px"
+                  className="object-contain p-2"
+                />
+              </div>
 
-            <span className="text-sm uppercase tracking-[0.35em] text-black/80">
-              Food Theatre
-            </span>
-          </Link>
+              <div className="min-w-0">
+                <p className="font-heading text-[1.8rem] leading-none text-black">
+                  Food Theatre
+                </p>
+                <p className="mt-1 text-[0.68rem] font-semibold uppercase tracking-[0.28em] text-black/55">
+                  Stories, stages, and shared tables
+                </p>
+              </div>
+            </Link>
 
-          {/* NAV LINKS */}
-          <nav className="hidden items-center gap-8 text-sm text-black/70 lg:flex">
-            <Link href="/experiences" className="transition hover:text-black">
-              Experiences
-            </Link>
-            <Link href="/characters" className="transition hover:text-black">
-              Characters
-            </Link>
-            <Link href="/chapters" className="transition hover:text-black">
-              Chapters
-            </Link>
-            <Link href="/journal" className="transition hover:text-black">
-              Journal
-            </Link>
-            <Link href="/search" className="transition hover:text-black">
+            <Link
+              href="/search"
+              className="ft-stage-chip shrink-0 xl:hidden"
+              style={{ "--ft-chip": "var(--ft-denim)" } as CSSProperties}
+            >
               Search
             </Link>
-            <Link href="/about" className="transition hover:text-black">
-              About
-            </Link>
-          </nav>
+          </div>
 
-          {/* CENTER SEARCH (DESKTOP) */}
-          <div className="hidden min-w-0 flex-1 justify-center xl:flex">
-            <form
-              action="/search"
-              method="GET"
-              className="flex w-full max-w-xs items-center gap-2 rounded-full border border-black/10 bg-white px-2 py-2 shadow-[0_10px_30px_rgba(0,0,0,0.04)]"
-            >
-              <input
-                type="text"
-                name="q"
-                placeholder="Explore..."
-                className="w-full bg-transparent px-3 py-1 text-sm outline-none placeholder:text-black/40"
-              />
-              <button
-                type="submit"
-                className="rounded-full bg-black px-4 py-2 text-sm text-white transition hover:bg-black/85"
+          <div className="hidden flex-1 items-center justify-center xl:flex">
+            <nav className="ft-surface flex items-center gap-2 px-3 py-2">
+              {navLinks.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className="ft-stage-chip hover:bg-white"
+                  style={{ "--ft-chip": link.chip } as CSSProperties}
+                >
+                  {link.label}
+                </Link>
+              ))}
+              <Link
+                href="/search"
+                className="ft-stage-chip"
+                style={{ "--ft-chip": "var(--ft-menta)" } as CSSProperties}
               >
                 Search
-              </button>
-            </form>
+              </Link>
+            </nav>
           </div>
 
-          {/* ACTION BUTTONS */}
           <div className="hidden items-center gap-3 lg:flex">
-            <Link href="/become-a-character">
-              <Button
-                variant="outline"
-                className="rounded-full border-black bg-transparent text-black hover:bg-black/5"
-              >
-                Become a Character
-              </Button>
-            </Link>
+            <Button asChild variant="outline" className="bg-white/80">
+              <Link href="/become-a-character">Become a Character</Link>
+            </Button>
 
-            <Link href="/open-a-chapter">
-              <Button className="rounded-full bg-black text-white hover:bg-black/90">
-                Open a Chapter
-              </Button>
-            </Link>
+            <Button asChild>
+              <Link href="/open-a-chapter">Open a Chapter</Link>
+            </Button>
           </div>
         </div>
 
-        {/* MOBILE SEARCH */}
-        <div className="mt-4 xl:hidden">
-          <form
-            action="/search"
-            method="GET"
-            className="flex items-center gap-2 rounded-full border border-black/10 bg-white px-2 py-2 shadow-[0_10px_30px_rgba(0,0,0,0.04)]"
-          >
-            <input
-              type="text"
-              name="q"
-              placeholder="Explore..."
-              className="w-full bg-transparent px-3 py-1 text-sm outline-none placeholder:text-black/40"
-            />
-            <button
-              type="submit"
-              className="rounded-full bg-black px-4 py-2 text-sm text-white transition hover:bg-black/85"
+        <div className="ft-no-scrollbar mt-3 flex gap-2 overflow-x-auto pb-1 xl:hidden">
+          {navLinks.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className="ft-stage-chip shrink-0"
+              style={{ "--ft-chip": link.chip } as CSSProperties}
             >
-              Search
-            </button>
-          </form>
+              {link.label}
+            </Link>
+          ))}
         </div>
+
+        <form
+          action="/search"
+          method="GET"
+          className="ft-surface mt-3 flex items-center gap-2 p-2 xl:hidden"
+        >
+          <input
+            type="text"
+            name="q"
+            placeholder="Search experiences, characters, chapters..."
+            className="ft-input min-w-0 border-0 bg-transparent px-3 py-2 shadow-none focus:shadow-none"
+          />
+
+          <Button type="submit" className="shrink-0">
+            Search
+          </Button>
+        </form>
       </div>
     </header>
   );
